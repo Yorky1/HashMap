@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <functional>
-#include <list>
 #include <vector>
 #include <iostream>
 #include <initializer_list>
@@ -9,6 +8,10 @@ template<class KeyType, class ValueType, class Hash = std::hash<KeyType>>
 class HashMap {
 private:
     Hash hasher;
+
+    const size_t DEFAULT_SIZE = 2;
+    const size_t COEF_OF_SIZE_TO_CHANGE = 4;
+    const size_t COEF_OF_NEW_SIZE = 2;
 
     struct Node {
         Node* next;
@@ -25,7 +28,7 @@ private:
     Node* last;
     size_t buffer_size;
     size_t map_size;
-    std::vector<Node*> H;
+    std::vector<Node*> nodes;
 
     bool isPrime(size_t x) {
         for (size_t d = 2; d * d <= x; ++d) {
@@ -42,10 +45,10 @@ private:
     }
 
     void eraseNode(Node* node) {
-        if (H[node->hash] == node && node->next && node->next->hash == node->hash)
-            H[node->hash] = node->next;
-        else if (H[node->hash] == node)
-            H[node->hash] = nullptr;
+        if (nodes[node->hash] == node && node->next && node->next->hash == node->hash)
+            nodes[node->hash] = node->next;
+        else if (nodes[node->hash] == node)
+            nodes[node->hash] = nullptr;
         if (node == first) first = node->next;
         if (node == last) last = node->prev;
         if (node->next) node->next->prev = node->prev;
@@ -70,10 +73,10 @@ private:
     }
 
     Node* findNode(KeyType key) const {
-        size_t hsh = hasher(key) % buffer_size;
-        Node* now = H[hsh];
+        size_t hash = hasher(key) % buffer_size;
+        Node* now = nodes[hash];
         if (!now) return nullptr;
-        while (now && now->hash == hsh) {
+        while (now && now->hash == hash) {
             if (now->val.first == key) return now;
             now = now->next;
         }
@@ -81,10 +84,10 @@ private:
     }
 
     void resize() {
-        buffer_size = nextPrimeNumber(buffer_size * 2);
+        buffer_size = nextPrimeNumber(buffer_size * COEF_OF_NEW_SIZE);
         map_size = 0;
-        H.clear();
-        H.resize(buffer_size);
+        nodes.clear();
+        nodes.resize(buffer_size);
         Node* now = first;
         first = last = nullptr;
         while (now) {
@@ -174,18 +177,18 @@ public:
     };
 
     HashMap(Hash hasher_ = Hash()) : hasher(hasher_) {
-        buffer_size = 2;
+        buffer_size = DEFAULT_SIZE;
         map_size = 0;
-        H.resize(buffer_size);
+        nodes.resize(buffer_size);
         first = nullptr;
         last = nullptr;
     }
 
     template<typename Iterator>
     HashMap(Iterator first1, Iterator last1, Hash hasher_ = Hash()) : hasher(hasher_) {
-        buffer_size = 2;
+        buffer_size = nextPrimeNumber(last1 - first1);
         map_size = 0;
-        H.resize(buffer_size);
+        nodes.resize(buffer_size);
         first = nullptr;
         last = nullptr;
         while (first1 != last1) {
@@ -195,9 +198,9 @@ public:
     }
 
     HashMap(std::initializer_list<std::pair<KeyType, ValueType>> list, Hash hasher_ = Hash()) : hasher(hasher_) {
-        buffer_size = 2;
+        buffer_size = nextPrimeNumber(list.size());
         map_size = 0;
-        H.resize(buffer_size);
+        nodes.resize(buffer_size);
         first = nullptr;
         last = nullptr;
         for (auto p : list) {
@@ -207,7 +210,7 @@ public:
 
     HashMap(const HashMap<KeyType, ValueType, Hash>& other) : hasher(other.hasher) {
         buffer_size = other.buffer_size;
-        H.resize(buffer_size);
+        nodes.resize(buffer_size);
         map_size = 0;
         first = nullptr;
         last = nullptr;
@@ -230,12 +233,12 @@ public:
 
     bool operator==(const HashMap<KeyType, ValueType>& other) const {
         if (map_size != other.size()) return false;
-        auto first1 = begin();
-        auto first2 = other.begin();
-        while (first1 != end()) {
-            if (!(*first1 == *first2)) return false;
-            ++first1;
-            ++first2;
+        auto it = begin();
+        auto otherIt = other.begin();
+        while (it != end()) {
+            if (!(*it == *otherIt)) return false;
+            ++it;
+            ++otherIt;
         }
         return true;
     }
@@ -253,13 +256,13 @@ public:
         if (node) {
             return;
         }
-        size_t hsh = hasher(p.first) % buffer_size;
+        size_t hash = hasher(p.first) % buffer_size;
         Node* newNode = new Node(p);
-        newNode->hash = hsh;
-        insertNode(H[hsh] ? H[hsh] : last, newNode);
-        if (!H[hsh]) H[hsh] = newNode;
+        newNode->hash = hash;
+        insertNode(nodes[hash] ? nodes[hash] : last, newNode);
+        if (!nodes[hash]) nodes[hash] = newNode;
         ++map_size;
-        if (4 * map_size > buffer_size) {
+        if (COEF_OF_SIZE_TO_CHANGE * map_size > buffer_size) {
             resize();
         }
     }
@@ -313,7 +316,7 @@ public:
 
     const ValueType& at(KeyType key) const {
         Node* node = findNode(key);
-        if (!node) throw std::out_of_range("");
+        if (!node) throw std::out_of_range("No such key");
         return node->val.second;
     }
 
