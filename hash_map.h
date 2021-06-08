@@ -9,7 +9,7 @@ class HashMap {
 private:
     Hash hasher;
 
-    const size_t DEFAULT_SIZE = 2;
+    constexpr size_t DEFAULT_SIZE = 2;
     const size_t COEF_OF_SIZE_TO_CHANGE = 4;
     const size_t COEF_OF_NEW_SIZE = 2;
 
@@ -24,8 +24,8 @@ private:
         }
     };
 
-    Node* first;
-    Node* last;
+    Node* first = nullptr;
+    Node* last = nullptr;
     size_t buffer_size;
     size_t map_size;
     std::vector<Node*> nodes;
@@ -72,7 +72,7 @@ private:
         newNode->prev = oldNode;
     }
 
-    Node* findNode(KeyType key) const {
+    Node* findNode(KeyType& key) const {
         size_t hash = hasher(key) % buffer_size;
         Node* now = nodes[hash];
         if (!now) return nullptr;
@@ -99,7 +99,6 @@ private:
     }
 
 public:
-
     class iterator {
     private:
         Node* node;
@@ -180,8 +179,6 @@ public:
         buffer_size = DEFAULT_SIZE;
         map_size = 0;
         nodes.resize(buffer_size);
-        first = nullptr;
-        last = nullptr;
     }
 
     template<typename Iterator>
@@ -189,8 +186,6 @@ public:
         buffer_size = nextPrimeNumber(last1 - first1);
         map_size = 0;
         nodes.resize(buffer_size);
-        first = nullptr;
-        last = nullptr;
         while (first1 != last1) {
             insert(*first1);
             ++first1;
@@ -201,8 +196,6 @@ public:
         buffer_size = nextPrimeNumber(list.size());
         map_size = 0;
         nodes.resize(buffer_size);
-        first = nullptr;
-        last = nullptr;
         for (auto p : list) {
             insert(p);
         }
@@ -212,8 +205,6 @@ public:
         buffer_size = other.buffer_size;
         nodes.resize(buffer_size);
         map_size = 0;
-        first = nullptr;
-        last = nullptr;
         Node* now = other.first;
         while (now) {
             insert(now->val);
@@ -243,7 +234,7 @@ public:
         return true;
     }
 
-    void erase(KeyType key) {
+    void erase(KeyType& key) {
         Node* node = findNode(key);
         if (node) {
             eraseNode(node);
@@ -251,7 +242,7 @@ public:
         }
     }
 
-    void insert(std::pair<const KeyType, ValueType> p) {
+    void insert(std::pair<const KeyType, ValueType>& p) {
         Node* node = findNode(p.first);
         if (node) {
             return;
